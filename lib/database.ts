@@ -9,8 +9,8 @@ class Database {
   private notifications: Map<string, NotificationData[]> = new Map();
 
   // User operations
-  createUser(userData: Omit<User, 'id' | 'createdAt'>): User {
-    const id = Math.random().toString(36).substr(2, 9);
+  createUser(userData: Omit<User, 'id' | 'createdAt'> & { id?: string }): User {
+    const id = userData.id || Math.random().toString(36).substr(2, 9);
     const user: User = {
       ...userData,
       id,
@@ -142,8 +142,9 @@ class Database {
 
 export const db = new Database();
 
-// Initialize with some demo data
+// Initialize with some demo data using stable IDs
 const demoUser1 = db.createUser({
+  id: 'demo-admin-001',
   email: 'admin@example.com',
   name: 'Admin User',
   referralCode: 'ADMIN123',
@@ -156,6 +157,7 @@ const demoUser1 = db.createUser({
 });
 
 const demoUser2 = db.createUser({
+  id: 'demo-user-001',
   email: 'user1@example.com',
   name: 'John Doe',
   referralCode: 'USER001',
