@@ -11,7 +11,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShoppingCart, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function PurchaseSimulator() {
+interface PurchaseSimulatorProps {
+  onPurchaseComplete?: () => void;
+}
+
+export function PurchaseSimulator({ onPurchaseComplete }: PurchaseSimulatorProps) {
   const [selectedUser, setSelectedUser] = useState('');
   const [purchaseAmount, setPurchaseAmount] = useState('');
   const [profitAmount, setProfitAmount] = useState('');
@@ -73,6 +77,11 @@ export function PurchaseSimulator() {
         toast.success('Purchase simulated successfully! Earnings distributed to referrers.');
         setPurchaseAmount('');
         setProfitAmount('');
+        
+        // Trigger refresh of parent component data
+        if (onPurchaseComplete) {
+          onPurchaseComplete();
+        }
       } else {
         toast.error(data.error || 'Failed to process purchase');
       }
@@ -304,7 +313,7 @@ export function PurchaseSimulator() {
               <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
                 4
               </div>
-              <p>Referrers will receive live notifications about their earnings</p>
+              <p>Referrers will receive notifications about their earnings (check the notification panel)</p>
             </div>
           </div>
         </CardContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +17,14 @@ import {
   Copy, 
   ShoppingCart,
   Network,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
 import { EarningsChart } from './earnings-chart';
 import { ReferralTree } from './referral-tree';
 import { NotificationPanel } from './notification-panel';
 import { PurchaseSimulator } from './purchase-simulator';
+import { toast } from 'sonner';
 
 interface DashboardLayoutProps {
   user: User;
@@ -30,12 +32,56 @@ interface DashboardLayoutProps {
   referralTree: any;
 }
 
-export function DashboardLayout({ user, earningsReport, referralTree }: DashboardLayoutProps) {
+export function DashboardLayout({ user: initialUser, earningsReport: initialEarningsReport, referralTree: initialReferralTree }: DashboardLayoutProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [user, setUser] = useState(initialUser);
+  const [earningsReport, setEarningsReport] = useState(initialEarningsReport);
+  const [referralTree, setReferralTree] = useState(initialReferralTree);
+  const [refreshing, setRefreshing] = useState(false);
   const { isConnected, notifications } = useWebSocket(user.id);
+
+  // Refresh data function
+  const refreshData = async () => {
+    setRefreshing(true);
+    try {
+      // Fetch updated user data
+      const userResponse = await fetch(`/api/users/${user.id}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        setUser(userData.user);
+      }
+
+      // Fetch updated earnings report
+      const earningsResponse = await fetch(`/api/earnings/${user.id}`);
+      if (earningsResponse.ok) {
+        const earningsData = await earningsResponse.json();
+        setEarningsReport(earningsData.report);
+      }
+
+      // Fetch updated referral tree
+      const referralResponse = await fetch(`/api/referrals/${user.id}`);
+      if (referralResponse.ok) {
+        const referralData = await referralResponse.json();
+        setReferralTree(referralData.referralTree);
+      }
+
+      toast.success('Data refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh data');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Auto-refresh every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(refreshData, 10000);
+    return () => clearInterval(interval);
+  }, [user.id]);
 
   const copyReferralCode = () => {
     navigator.clipboard.writeText(user.referralCode);
+    toast.success('Referral code copied to clipboard');
   };
 
   return (
@@ -53,6 +99,16 @@ export function DashboardLayout({ user, earningsReport, referralTree }: Dashboar
           </div>
           
           <div className="flex items-center gap-4">
+            <Button
+              onClick={refreshData}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
               <span className="text-sm text-slate-600 dark:text-slate-400">
@@ -237,7 +293,7 @@ export function DashboardLayout({ user, earningsReport, referralTree }: Dashboar
           </TabsContent>
 
           <TabsContent value="simulator">
-            <PurchaseSimulator />
+            <PurchaseSimulator onPurchaseComplete={refreshData} />
           </TabsContent>
         </Tabs>
       </div>

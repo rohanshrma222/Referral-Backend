@@ -1,20 +1,35 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NotificationData } from '@/types';
 
 export function useWebSocket(userId: string | null) {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always show as connected for demo
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
-  // WebSocket functionality disabled in webcontainer environment
-  // In production, you would implement a proper WebSocket server
   useEffect(() => {
-    // Simulate connection status for demo purposes
-    setIsConnected(false);
+    if (!userId) return;
+
+    // Simulate real-time notifications by polling for new earnings
+    const pollForNotifications = async () => {
+      try {
+        const response = await fetch(`/api/notifications/${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.notifications || []);
+        }
+      } catch (error) {
+        console.log('Polling error:', error);
+      }
+    };
+
+    // Poll every 5 seconds for new notifications
+    const interval = setInterval(pollForNotifications, 5000);
     
-    // You could implement polling or Server-Sent Events as an alternative
-    // For now, we'll just show static state
+    // Initial load
+    pollForNotifications();
+
+    return () => clearInterval(interval);
   }, [userId]);
 
   return {

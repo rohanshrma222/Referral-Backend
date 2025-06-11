@@ -3,7 +3,6 @@ import { User, Transaction, Earning, NotificationData } from '@/types';
 
 export class ReferralEngine {
   private static instance: ReferralEngine;
-  private wsConnections: Map<string, WebSocket> = new Map();
 
   static getInstance(): ReferralEngine {
     if (!ReferralEngine.instance) {
@@ -48,7 +47,9 @@ export class ReferralEngine {
       const level1Earning = profit * 0.05;
       this.createEarning(level1Parent.id, userId, user.name, level1Earning, 5, 1, transactionId, 'direct');
       this.updateUserEarnings(level1Parent.id, level1Earning, 'direct');
-      this.sendLiveUpdate(level1Parent.id, 'earning', {
+      
+      // Add notification for level 1 parent
+      db.addNotification(level1Parent.id, {
         type: 'earning',
         userId: level1Parent.id,
         title: 'Direct Referral Earning',
@@ -64,7 +65,9 @@ export class ReferralEngine {
           const level2Earning = profit * 0.01;
           this.createEarning(level2Parent.id, userId, user.name, level2Earning, 1, 2, transactionId, 'indirect');
           this.updateUserEarnings(level2Parent.id, level2Earning, 'indirect');
-          this.sendLiveUpdate(level2Parent.id, 'earning', {
+          
+          // Add notification for level 2 parent
+          db.addNotification(level2Parent.id, {
             type: 'earning',
             userId: level2Parent.id,
             title: 'Indirect Referral Earning',
@@ -107,25 +110,6 @@ export class ReferralEngine {
     }
   }
 
-  // WebSocket connection management
-  addConnection(userId: string, ws: WebSocket): void {
-    this.wsConnections.set(userId, ws);
-  }
-
-  removeConnection(userId: string): void {
-    this.wsConnections.delete(userId);
-  }
-
-  private sendLiveUpdate(userId: string, type: string, data: NotificationData): void {
-    const ws = this.wsConnections.get(userId);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, data }));
-    }
-    
-    // Also store notification in database
-    db.addNotification(userId, data);
-  }
-
   // Add referral with validation
   addReferral(parentReferralCode: string, childUserId: string): boolean {
     const parent = db.getUserByReferralCode(parentReferralCode);
@@ -143,7 +127,8 @@ export class ReferralEngine {
     const success = db.addReferral(parent.id, childUserId);
     
     if (success) {
-      this.sendLiveUpdate(parent.id, 'referral', {
+      // Add notification for new referral
+      db.addNotification(parent.id, {
         type: 'referral',
         userId: parent.id,
         title: 'New Referral',
