@@ -11,8 +11,12 @@ export function useWebSocket(userId: string | null) {
   useEffect(() => {
     if (!userId) return;
 
+    // Construct WebSocket URL dynamically based on current location
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.hostname}:8080`;
+    
     // Connect to WebSocket server
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
